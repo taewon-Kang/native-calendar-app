@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  GestureResponderEvent,
+} from "react-native";
 
 interface CalendarCellProps {
   day: number;
@@ -7,6 +13,7 @@ interface CalendarCellProps {
   isSunday: boolean;
   isSaturday: boolean;
   isSelected?: boolean;
+  onPress?: (event: GestureResponderEvent) => void;
 }
 
 const CIRCLE_SIZE = 40;
@@ -19,6 +26,7 @@ export default function CalendarCell({
   isSunday,
   isSaturday,
   isSelected,
+  onPress,
 }: CalendarCellProps) {
   const getTextColorStyle = () => {
     if (!isCurrentMonth) return styles.notCurrentMonth;
@@ -29,9 +37,11 @@ export default function CalendarCell({
 
   return (
     <View style={styles.cellWrapper}>
-      <View style={[isSelected && styles.circle]}>
-        <Text style={[styles.baseText, getTextColorStyle()]}>{day}</Text>
-      </View>
+      <TouchableOpacity onPress={onPress} disabled={!onPress}>
+        <View style={[styles.dayContainer, isSelected && styles.selected]}>
+          <Text style={[styles.baseText, getTextColorStyle()]}>{day}</Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -45,12 +55,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  circle: {
+  dayContainer: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
-    borderRadius: BORDER_RADIUS,
     alignItems: "center",
     justifyContent: "center",
+  },
+  selected: {
+    borderRadius: BORDER_RADIUS,
     borderWidth: 2,
     borderColor: "#0EB4FC",
   },

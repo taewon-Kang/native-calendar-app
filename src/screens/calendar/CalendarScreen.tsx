@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { getCalendar } from "../../utils/calendar";
 import CalendarCell from "../../components/calendar/CalendarCell";
@@ -11,11 +11,14 @@ const month = today.getMonth();
 const calendarRows = getCalendar(year, month);
 
 export default function CalendarScreen() {
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+
   return (
     <View style={styles.container}>
       <Text style={styles.headerText}>
         {today.toLocaleString("default", { month: "long" })} {year}
       </Text>
+
       <View style={styles.weekRow}>
         {DAYS.map((day) => (
           <Text
@@ -30,18 +33,28 @@ export default function CalendarScreen() {
           </Text>
         ))}
       </View>
+
       <View style={styles.dateGrid}>
         {calendarRows.map((week, rowIdx) => (
           <View key={rowIdx} style={styles.weekRow}>
-            {week.map((cell, colIdx) => (
-              <CalendarCell
-                key={colIdx}
-                day={cell.day}
-                isCurrentMonth={cell.isCurrentMonth}
-                isSunday={colIdx === 0}
-                isSaturday={colIdx === 6}
-              />
-            ))}
+            {week.map((cell, colIdx) => {
+              const isSelected =
+                cell.isCurrentMonth && cell.day === selectedDate;
+
+              return (
+                <CalendarCell
+                  key={colIdx}
+                  day={cell.day}
+                  isCurrentMonth={cell.isCurrentMonth}
+                  isSunday={colIdx === 0}
+                  isSaturday={colIdx === 6}
+                  isSelected={isSelected}
+                  onPress={() => {
+                    if (cell.isCurrentMonth) setSelectedDate(cell.day);
+                  }}
+                />
+              );
+            })}
           </View>
         ))}
       </View>
