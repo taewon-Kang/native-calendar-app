@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 
 interface CalendarCellProps {
   day: number;
@@ -9,29 +9,53 @@ interface CalendarCellProps {
   isSelected?: boolean;
 }
 
+const CIRCLE_SIZE = 40;
+const BORDER_RADIUS = CIRCLE_SIZE / 2;
+const FONT_SIZE = 14;
+
 export default function CalendarCell({
   day,
   isCurrentMonth,
   isSunday,
   isSaturday,
+  isSelected,
 }: CalendarCellProps) {
-  const getTextStyle = () => {
-    if (!isCurrentMonth) return [styles.dateCell, styles.notCurrentMonth];
-    if (isSunday) return [styles.dateCell, styles.sunday];
-    if (isSaturday) return [styles.dateCell, styles.saturday];
-    return styles.dateCell;
+  const getTextColorStyle = () => {
+    if (!isCurrentMonth) return styles.notCurrentMonth;
+    if (isSunday) return styles.sunday;
+    if (isSaturday) return styles.saturday;
+    return styles.defaultDay;
   };
 
-  return <Text style={getTextStyle()}>{day}</Text>;
+  return (
+    <View style={styles.cellWrapper}>
+      <View style={[isSelected && styles.circle]}>
+        <Text style={[styles.baseText, getTextColorStyle()]}>{day}</Text>
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  dateCell: {
+  baseText: {
+    fontSize: FONT_SIZE,
+  },
+  cellWrapper: {
     flex: 1,
-    textAlign: "center",
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "rgba(50, 50, 50, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circle: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: BORDER_RADIUS,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#0EB4FC",
+  },
+  defaultDay: {
+    color: "rgba(50, 50, 50, 0.9)",
   },
   notCurrentMonth: {
     color: "rgba(155, 155, 155, 0.6)",
