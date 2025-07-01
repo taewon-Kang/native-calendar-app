@@ -1,46 +1,58 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { getCalendar } from "../../utils/calendar";
 import CalendarCell from "../../components/calendar/CalendarCell";
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const today = new Date();
-const year = today.getFullYear();
-const month = today.getMonth();
-const calendarRows = getCalendar(year, month);
+import CalendarHeader from "../../components/calendar/CalendarHeader";
 
 export default function CalendarScreen() {
-  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+  const today = new Date();
+
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState(
+    `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
+  );
+
+  const calendarRows = getCalendar(year, month);
+
+  const handlePrevMonth = () => {
+    if (month === 0) {
+      setMonth(11);
+      setYear((prev) => prev - 1);
+    } else {
+      setMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (month === 11) {
+      setMonth(0);
+      setYear((prev) => prev + 1);
+    } else {
+      setMonth((prev) => prev + 1);
+    }
+  };
+
+  const handleSelectDate = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return;
+    setSelectedDate(`${year}-${month + 1}-${day}`);
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerText}>
-        {today.toLocaleString("default", { month: "long" })} {year}
-      </Text>
-
-      <View style={styles.weekRow}>
-        {DAYS.map((day) => (
-          <Text
-            key={day}
-            style={[
-              styles.weekDay,
-              day === "Sun" && styles.sunday,
-              day === "Sat" && styles.saturday,
-            ]}
-          >
-            {day}
-          </Text>
-        ))}
-      </View>
-
+      <CalendarHeader
+        year={year}
+        month={month}
+        onPrev={handlePrevMonth}
+        onNext={handleNextMonth}
+      />
       <View style={styles.dateGrid}>
         {calendarRows.map((week, rowIdx) => (
           <View key={rowIdx} style={styles.weekRow}>
             {week.map((cell, colIdx) => {
               const isSelected =
-                cell.isCurrentMonth && cell.day === selectedDate;
-
+                cell.isCurrentMonth &&
+                selectedDate === `${year}-${month + 1}-${cell.day}`;
               return (
                 <CalendarCell
                   key={colIdx}
@@ -49,9 +61,9 @@ export default function CalendarScreen() {
                   isSunday={colIdx === 0}
                   isSaturday={colIdx === 6}
                   isSelected={isSelected}
-                  onPress={() => {
-                    if (cell.isCurrentMonth) setSelectedDate(cell.day);
-                  }}
+                  onPress={() =>
+                    handleSelectDate(cell.day, cell.isCurrentMonth)
+                  }
                 />
               );
             })}
@@ -67,27 +79,9 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
   },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
-  },
   weekRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  weekDay: {
-    flex: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-    color: "rgba(50, 50, 50, 0.6)",
-  },
-  sunday: {
-    color: "rgba(255, 0, 0, 0.6)",
-  },
-  saturday: {
-    color: "rgba(0, 0, 255, 0.6)",
   },
   dateGrid: {
     marginTop: 12,
