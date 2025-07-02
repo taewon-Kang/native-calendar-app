@@ -4,7 +4,11 @@ import { getCalendar, isSameDate, isSameMonth } from "../../utils/calendar";
 import CalendarCell from "../../components/calendar/CalendarCell";
 import CalendarHeader from "../../components/calendar/CalendarHeader";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { CalendarCellType, CalendarMode } from "../../types/calendar.types";
 
 export default function CalendarScreen() {
@@ -12,95 +16,105 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("month");
   const [viewDate, setViewDate] = useState<Date>(today);
+  const [direction, setDirection] = useState<"left" | "right" | "up" | "down">(
+    "left"
+  );
+  const [initRender, setInitRender] = useState(true);
+  const translate = useSharedValue(0);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const calendarRows = useMemo(() => getCalendar(year, month), [year, month]);
 
   useEffect(() => {
-    if (calendarMode === "week") {
-      if (isSameMonth(selectedDate, viewDate)) {
-        const rows = getCalendar(viewDate.getFullYear(), viewDate.getMonth());
-        const week = rows.find((week) =>
-          week.some((cell) => isSameDate(cell.date, selectedDate))
-        );
-        if (week) {
-          const midDate = week[Math.floor(week.length / 2)].date;
-          setViewDate(midDate);
-        }
-      } else {
-        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
-      }
+    if (initRender) {
+      setInitRender(false);
+      return;
     }
-  }, [calendarMode]);
 
-  const weekRows = useMemo(() => {
+    const offset = 100;
+    translate.value =
+      direction === "left"
+        ? offset
+        : direction === "right"
+        ? -offset
+        : direction === "up"
+        ? offset
+        : 0;
+
+    translate.value = withTiming(0, { duration: 250 });
+  }, [calendarMode, viewDate]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const axis =
+      direction === "left" || direction === "right"
+        ? "translateX"
+        : "translateY";
+    return {
+      transform: [{ [axis]: translate.value }] as any,
+    };
+  });
+
+  const getWeekRows = () => {
     const week = calendarRows.find((week) =>
       week.some((cell) => isSameDate(cell.date, viewDate))
     );
     return week ? [week] : [calendarRows[0]];
-  }, [calendarRows, viewDate]);
+  };
 
   const handleDatePress = useCallback((date: Date) => {
     setSelectedDate(date);
   }, []);
 
-  const moveMonth = (offset: number) => {
+  const moveDate = (offset: number, isMonth: boolean) => {
     const newDate = new Date(viewDate);
-    newDate.setMonth(newDate.getMonth() + offset);
+    const newDirection = offset > 0 ? "left" : "right";
+    setDirection(newDirection);
+    if (isMonth) newDate.setMonth(viewDate.getMonth() + offset);
+    else newDate.setDate(viewDate.getDate() + offset * 7);
     setViewDate(newDate);
   };
 
-  const moveWeek = (offset: number) => {
-    const newDate = new Date(viewDate);
-    newDate.setDate(newDate.getDate() + offset * 7);
-    setViewDate(newDate);
+  const changeMode = (mode: CalendarMode) => {
+    setDirection(mode === "month" ? "down" : "up");
+    setCalendarMode(mode);
   };
 
   const panGesture = Gesture.Pan()
     .onEnd((e) => {
-      const { translationY, translationX } = e;
-      if (translationY > 50) {
-        setCalendarMode("month");
-      } else if (translationY < -50) {
-        setCalendarMode("week");
-      } else if (translationX > 50) {
-        if (calendarMode === "month") moveMonth(-1);
-        else moveWeek(-1);
-      } else if (translationX < -50) {
-        if (calendarMode === "month") moveMonth(1);
-        else moveWeek(1);
-      }
+      const { translationX, translationY } = e;
+      if (translationY > 50) changeMode("month");
+      else if (translationY < -50) changeMode("week");
+      else if (translationX > 50) moveDate(-1, calendarMode === "month");
+      else if (translationX < -50) moveDate(1, calendarMode === "month");
     })
     .runOnJS(true);
+
+  const rowsToRender = calendarMode === "month" ? calendarRows : getWeekRows();
 
   return (
     <View style={styles.container}>
       <CalendarHeader
-        year={viewDate.getFullYear()}
-        month={viewDate.getMonth()}
-        onPrev={() => moveMonth(-1)}
-        onNext={() => moveMonth(1)}
+        year={year}
+        month={month}
+        onPrev={() => moveDate(-1, calendarMode === "month")}
+        onNext={() => moveDate(1, calendarMode === "month")}
       />
       <GestureDetector gesture={panGesture}>
-        <Animated.View>
-          <View style={styles.dateGrid}>
-            {(calendarMode === "month" ? calendarRows : weekRows).map(
-              (week, rowIdx) => (
-                <View key={rowIdx} style={styles.weekRow}>
-                  {week.map((cell: CalendarCellType, colIdx: number) => (
-                    <CalendarCell
-                      key={colIdx}
-                      date={cell.date}
-                      isCurrentMonth={isSameMonth(cell.date, viewDate)}
-                      isSelected={isSameDate(cell.date, selectedDate)}
-                      onPress={() => handleDatePress(cell.date)}
-                    />
-                  ))}
-                </View>
-              )
-            )}
-          </View>
+        <Animated.View style={[styles.dateGrid, animatedStyle]}>
+          {rowsToRender.map((week, rowIdx) => (
+            <View key={rowIdx} style={styles.weekRow}>
+              {week.map((cell: CalendarCellType) => (
+                <CalendarCell
+                  key={cell.date.toISOString()}
+                  date={cell.date}
+                  isCurrentMonth={isSameMonth(cell.date, viewDate)}
+                  isSelected={isSameDate(cell.date, selectedDate)}
+                  onPress={() => handleDatePress(cell.date)}
+                />
+              ))}
+            </View>
+          ))}
         </Animated.View>
       </GestureDetector>
     </View>
