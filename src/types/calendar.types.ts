@@ -1,4 +1,4 @@
-export type CalendarCell = {
-  day: number;
+export type CalendarCellType = {
+  date: Date;
   isCurrentMonth: boolean;
 };

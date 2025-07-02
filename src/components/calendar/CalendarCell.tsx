@@ -8,10 +8,8 @@ import {
 } from "react-native";
 
 interface CalendarCellProps {
-  day: number;
+  date: Date;
   isCurrentMonth: boolean;
-  isSunday: boolean;
-  isSaturday: boolean;
   isSelected?: boolean;
   onPress?: (event: GestureResponderEvent) => void;
 }
@@ -21,17 +19,18 @@ const BORDER_RADIUS = CIRCLE_SIZE / 2;
 const FONT_SIZE = 14;
 
 export default function CalendarCell({
-  day,
+  date,
   isCurrentMonth,
-  isSunday,
-  isSaturday,
   isSelected,
   onPress,
 }: CalendarCellProps) {
+  const day = date.getDate();
+  const dayOfWeek = date.getDay();
+
   const getTextColorStyle = () => {
     if (!isCurrentMonth) return styles.notCurrentMonth;
-    if (isSunday) return styles.sunday;
-    if (isSaturday) return styles.saturday;
+    if (dayOfWeek === 0) return styles.sunday;
+    if (dayOfWeek === 6) return styles.saturday;
     return styles.defaultDay;
   };
 

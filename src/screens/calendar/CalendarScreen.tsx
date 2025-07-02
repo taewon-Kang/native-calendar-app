@@ -1,17 +1,15 @@
 import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { getCalendar } from "../../utils/calendar";
+import { getCalendar, isSameDate } from "../../utils/calendar";
 import CalendarCell from "../../components/calendar/CalendarCell";
 import CalendarHeader from "../../components/calendar/CalendarHeader";
+import { CalendarCellType } from "../../types/calendar.types";
 
 export default function CalendarScreen() {
   const today = new Date();
-
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [selectedDate, setSelectedDate] = useState(
-    `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
-  );
+  const [year, setYear] = useState<number>(today.getFullYear());
+  const [month, setMonth] = useState<number>(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
 
   const calendarRows = getCalendar(year, month);
 
@@ -33,9 +31,9 @@ export default function CalendarScreen() {
     }
   };
 
-  const handleSelectDate = (day: number, isCurrentMonth: boolean) => {
+  const handleSelectDate = (date: Date, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return;
-    setSelectedDate(`${year}-${month + 1}-${day}`);
+    setSelectedDate(date);
   };
 
   return (
@@ -49,20 +47,17 @@ export default function CalendarScreen() {
       <View style={styles.dateGrid}>
         {calendarRows.map((week, rowIdx) => (
           <View key={rowIdx} style={styles.weekRow}>
-            {week.map((cell, colIdx) => {
-              const isSelected =
-                cell.isCurrentMonth &&
-                selectedDate === `${year}-${month + 1}-${cell.day}`;
+            {week.map((cell: CalendarCellType, colIdx: number) => {
               return (
                 <CalendarCell
                   key={colIdx}
-                  day={cell.day}
+                  date={cell.date}
                   isCurrentMonth={cell.isCurrentMonth}
-                  isSunday={colIdx === 0}
-                  isSaturday={colIdx === 6}
-                  isSelected={isSelected}
+                  isSelected={
+                    cell.isCurrentMonth && isSameDate(cell.date, selectedDate)
+                  }
                   onPress={() =>
-                    handleSelectDate(cell.day, cell.isCurrentMonth)
+                    handleSelectDate(cell.date, cell.isCurrentMonth)
                   }
                 />
               );
