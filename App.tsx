@@ -7,6 +7,7 @@ import HomeScreen from "./src/screens/home/HomeScreen";
 import CalendarScreen from "./src/screens/calendar/CalendarScreen";
 import LibraryScreen from "./src/screens/library/LibraryScreen";
 import MyPageScreen from "./src/screens/mypage/MyPageScreen";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export type RootTabParamList = {
   Home: undefined;
@@ -46,22 +47,24 @@ const TAB_SCREENS = [
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator>
-        {TAB_SCREENS.map(({ name, component, icon, headerShown }) => (
-          <Tab.Screen
-            key={name}
-            name={name}
-            component={component}
-            options={{
-              headerShown,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name={icon} size={size} color={color} />
-              ),
-            }}
-          />
-        ))}
-      </Tab.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView>
+      <NavigationContainer>
+        <Tab.Navigator>
+          {TAB_SCREENS.map(({ name, component, icon, headerShown }) => (
+            <Tab.Screen
+              key={name}
+              name={name}
+              component={component}
+              options={{
+                headerShown,
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name={icon} size={size} color={color} />
+                ),
+              }}
+            />
+          ))}
+        </Tab.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

@@ -1,70 +1,108 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
-import { getCalendar, isSameDate } from "../../utils/calendar";
+import { getCalendar, isSameDate, isSameMonth } from "../../utils/calendar";
 import CalendarCell from "../../components/calendar/CalendarCell";
 import CalendarHeader from "../../components/calendar/CalendarHeader";
-import { CalendarCellType } from "../../types/calendar.types";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
+import { CalendarCellType, CalendarMode } from "../../types/calendar.types";
 
 export default function CalendarScreen() {
-  const today = new Date();
-  const [year, setYear] = useState<number>(today.getFullYear());
-  const [month, setMonth] = useState<number>(today.getMonth());
+  const today = useMemo(() => new Date(), []);
   const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [calendarMode, setCalendarMode] = useState<CalendarMode>("month");
+  const [viewDate, setViewDate] = useState<Date>(today);
 
-  const calendarRows = getCalendar(year, month);
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const calendarRows = useMemo(() => getCalendar(year, month), [year, month]);
 
-  const handlePrevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear((prev) => prev - 1);
-    } else {
-      setMonth((prev) => prev - 1);
+  useEffect(() => {
+    if (calendarMode === "week") {
+      if (isSameMonth(selectedDate, viewDate)) {
+        const rows = getCalendar(viewDate.getFullYear(), viewDate.getMonth());
+        const week = rows.find((week) =>
+          week.some((cell) => isSameDate(cell.date, selectedDate))
+        );
+        if (week) {
+          const midDate = week[Math.floor(week.length / 2)].date;
+          setViewDate(midDate);
+        }
+      } else {
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
+      }
     }
-  };
+  }, [calendarMode]);
 
-  const handleNextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear((prev) => prev + 1);
-    } else {
-      setMonth((prev) => prev + 1);
-    }
-  };
+  const weekRows = useMemo(() => {
+    const week = calendarRows.find((week) =>
+      week.some((cell) => isSameDate(cell.date, viewDate))
+    );
+    return week ? [week] : [calendarRows[0]];
+  }, [calendarRows, viewDate]);
 
-  const handleSelectDate = (date: Date, isCurrentMonth: boolean) => {
-    if (!isCurrentMonth) return;
+  const handleDatePress = useCallback((date: Date) => {
     setSelectedDate(date);
+  }, []);
+
+  const moveMonth = (offset: number) => {
+    const newDate = new Date(viewDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setViewDate(newDate);
   };
+
+  const moveWeek = (offset: number) => {
+    const newDate = new Date(viewDate);
+    newDate.setDate(newDate.getDate() + offset * 7);
+    setViewDate(newDate);
+  };
+
+  const panGesture = Gesture.Pan()
+    .onEnd((e) => {
+      const { translationY, translationX } = e;
+      if (translationY > 50) {
+        setCalendarMode("month");
+      } else if (translationY < -50) {
+        setCalendarMode("week");
+      } else if (translationX > 50) {
+        if (calendarMode === "month") moveMonth(-1);
+        else moveWeek(-1);
+      } else if (translationX < -50) {
+        if (calendarMode === "month") moveMonth(1);
+        else moveWeek(1);
+      }
+    })
+    .runOnJS(true);
 
   return (
     <View style={styles.container}>
       <CalendarHeader
-        year={year}
-        month={month}
-        onPrev={handlePrevMonth}
-        onNext={handleNextMonth}
+        year={viewDate.getFullYear()}
+        month={viewDate.getMonth()}
+        onPrev={() => moveMonth(-1)}
+        onNext={() => moveMonth(1)}
       />
-      <View style={styles.dateGrid}>
-        {calendarRows.map((week, rowIdx) => (
-          <View key={rowIdx} style={styles.weekRow}>
-            {week.map((cell: CalendarCellType, colIdx: number) => {
-              return (
-                <CalendarCell
-                  key={colIdx}
-                  date={cell.date}
-                  isCurrentMonth={cell.isCurrentMonth}
-                  isSelected={
-                    cell.isCurrentMonth && isSameDate(cell.date, selectedDate)
-                  }
-                  onPress={() =>
-                    handleSelectDate(cell.date, cell.isCurrentMonth)
-                  }
-                />
-              );
-            })}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View>
+          <View style={styles.dateGrid}>
+            {(calendarMode === "month" ? calendarRows : weekRows).map(
+              (week, rowIdx) => (
+                <View key={rowIdx} style={styles.weekRow}>
+                  {week.map((cell: CalendarCellType, colIdx: number) => (
+                    <CalendarCell
+                      key={colIdx}
+                      date={cell.date}
+                      isCurrentMonth={isSameMonth(cell.date, viewDate)}
+                      isSelected={isSameDate(cell.date, selectedDate)}
+                      onPress={() => handleDatePress(cell.date)}
+                    />
+                  ))}
+                </View>
+              )
+            )}
           </View>
-        ))}
-      </View>
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
@@ -73,6 +111,7 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 50,
     paddingHorizontal: 20,
+    flex: 1,
   },
   weekRow: {
     flexDirection: "row",
